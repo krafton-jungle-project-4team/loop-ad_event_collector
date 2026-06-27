@@ -67,6 +67,7 @@ func (s *Server) Routes() http.Handler {
 	router.Get("/health", s.handleHealth)
 	router.Group(func(router chi.Router) {
 		router.Use(middleware.AllowContentType("application/json"))
+		router.Use(middleware.RequestSize(maxBodyBytes))
 		router.Post("/", s.handleIngest)
 		router.Post("/events", s.handleIngest)
 	})
@@ -78,7 +79,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
-	body, status, err := readBody(w, r)
+	body, status, err := readBody(r)
 	if err != nil {
 		renderError(w, r, status, "bad_request", err.Error())
 		return
@@ -106,14 +107,10 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func readBody(w http.ResponseWriter, r *http.Request) ([]byte, int, error) {
+func readBody(r *http.Request) ([]byte, int, error) {
 	defer r.Body.Close()
 
-	if r.ContentLength > maxBodyBytes {
-		return nil, http.StatusRequestEntityTooLarge, fmt.Errorf("event body is %d bytes, max %d", r.ContentLength, maxBodyBytes)
-	}
-
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes+1))
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
@@ -123,9 +120,6 @@ func readBody(w http.ResponseWriter, r *http.Request) ([]byte, int, error) {
 	}
 	if len(body) == 0 {
 		return nil, http.StatusBadRequest, fmt.Errorf("event body is required")
-	}
-	if int64(len(body)) > maxBodyBytes {
-		return nil, http.StatusRequestEntityTooLarge, fmt.Errorf("event body exceeds max %d bytes", maxBodyBytes)
 	}
 	return body, http.StatusOK, nil
 }

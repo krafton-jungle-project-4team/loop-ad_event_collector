@@ -108,18 +108,7 @@ func chdirTemp(t *testing.T) string {
 	t.Helper()
 
 	dir := t.TempDir()
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("chdir: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(wd); err != nil {
-			t.Fatalf("restore wd: %v", err)
-		}
-	})
+	t.Chdir(dir)
 	return dir
 }
 
