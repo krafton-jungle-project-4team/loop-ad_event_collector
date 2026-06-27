@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -88,9 +89,7 @@ func setConfigEnv(t *testing.T, overrides map[string]string) {
 		"LOOPAD_KAFKA_BOOTSTRAP_BROKERS": "kafka-1:9092,kafka-2:9092",
 		"LOOPAD_EVENT_TOPIC":             "loop-ad.events.raw",
 	}
-	for key, value := range overrides {
-		values[key] = value
-	}
+	maps.Copy(values, overrides)
 	for key, value := range values {
 		t.Setenv(key, value)
 	}
