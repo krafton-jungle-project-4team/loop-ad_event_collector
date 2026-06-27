@@ -37,6 +37,10 @@ fallback 없이 시작 시점에 검증합니다.
 | `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `kafka:9092` | comma-separated Kafka bootstrap broker |
 | `LOOPAD_EVENT_TOPIC` | `loop-ad.events.raw` | raw event Kafka topic |
 
+서버는 시작하자마자 `.env` 파일이 있으면 먼저 로드한 뒤, 실제 환경변수 전체를
+파싱하고 검증합니다. `.env`가 없으면 ECS처럼 주입된 환경변수만 사용합니다.
+필수 env가 없거나 형식이 틀리면 Kafka 연결 전에 바로 실패합니다.
+
 로컬 예시는 [.env.example](.env.example)에 있습니다.
 
 ## Local Development
@@ -48,9 +52,7 @@ go test ./...
 Kafka가 준비된 상태에서 서버를 실행합니다.
 
 ```bash
-set -a
-source .env.example
-set +a
+cp .env.example .env
 go run ./cmd/collector
 ```
 
