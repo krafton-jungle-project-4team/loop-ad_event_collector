@@ -65,8 +65,11 @@ func (s *Server) Routes() http.Handler {
 		MaxAge:         86400,
 	}))
 	router.Get("/health", s.handleHealth)
-	router.Post("/", s.handleIngest)
-	router.Post("/events", s.handleIngest)
+	router.Group(func(router chi.Router) {
+		router.Use(middleware.AllowContentType("application/json"))
+		router.Post("/", s.handleIngest)
+		router.Post("/events", s.handleIngest)
+	})
 	return router
 }
 
@@ -75,11 +78,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
-	if render.GetRequestContentType(r) != render.ContentTypeJSON {
-		renderError(w, r, http.StatusUnsupportedMediaType, "unsupported_media_type", "Content-Type must be application/json")
-		return
-	}
-
 	body, status, err := readBody(w, r)
 	if err != nil {
 		renderError(w, r, status, "bad_request", err.Error())
