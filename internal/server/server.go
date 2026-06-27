@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 
 	"github.com/krafton-jungle-project-4team/loop-ad_event_collector/internal/event"
 	"github.com/krafton-jungle-project-4team/loop-ad_event_collector/internal/producer"
@@ -32,6 +32,17 @@ type Config struct {
 type Server struct {
 	producer Producer
 	logger   *slog.Logger
+}
+
+type acceptedResponse struct {
+	Accepted  int    `json:"accepted"`
+	EventID   string `json:"event_id"`
+	RequestID string `json:"request_id"`
+}
+
+type errorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
 }
 
 func New(cfg Config) *Server {
@@ -64,34 +75,35 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	if err := requireJSONContentType(r); err != nil {
-		writeError(w, http.StatusUnsupportedMediaType, "unsupported_media_type", err.Error())
+		renderError(w, r, http.StatusUnsupportedMediaType, "unsupported_media_type", err.Error())
 		return
 	}
 
 	body, status, err := readBody(w, r)
 	if err != nil {
-		writeError(w, status, "bad_request", err.Error())
+		renderError(w, r, status, "bad_request", err.Error())
 		return
 	}
 
 	requestID := requestIDFrom(r)
 	row, value, err := event.NormalizeForClickHouse(body, requestID)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		renderError(w, r, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 
 	if err := s.producer.Produce(r.Context(), producer.Message{Key: []byte(row.EventID), Value: value}); err != nil {
 		s.logger.Error("event publish failed", "error", err, "event_id", row.EventID, "request_id", row.RequestID)
-		writeError(w, http.StatusServiceUnavailable, "service_unavailable", "event publish failed")
+		renderError(w, r, http.StatusServiceUnavailable, "service_unavailable", "event publish failed")
 		return
 	}
 
 	s.logger.Info("event accepted", "event_id", row.EventID, "request_id", row.RequestID, "event_type", row.EventType)
-	writeJSON(w, http.StatusAccepted, map[string]any{
-		"accepted":   1,
-		"event_id":   row.EventID,
-		"request_id": row.RequestID,
+	render.Status(r, http.StatusAccepted)
+	render.JSON(w, r, acceptedResponse{
+		Accepted:  1,
+		EventID:   row.EventID,
+		RequestID: row.RequestID,
 	})
 }
 
@@ -164,15 +176,10 @@ func requestIDFrom(r *http.Request) string {
 	return "req_" + hex.EncodeToString(bytes[:])
 }
 
-func writeError(w http.ResponseWriter, status int, code string, message string) {
-	writeJSON(w, status, map[string]any{
-		"error":   code,
-		"message": message,
+func renderError(w http.ResponseWriter, r *http.Request, status int, code string, message string) {
+	render.Status(r, status)
+	render.JSON(w, r, errorResponse{
+		Error:   code,
+		Message: message,
 	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body map[string]any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
 }
