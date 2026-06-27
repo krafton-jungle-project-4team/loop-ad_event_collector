@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-chi/chi/v5 v5.3.0
+	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/segmentio/kafka-go v0.4.49

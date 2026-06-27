@@ -2,16 +2,15 @@ package server
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"mime"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 
 	"github.com/krafton-jungle-project-4team/loop-ad_event_collector/internal/event"
@@ -58,24 +57,26 @@ func New(cfg Config) *Server {
 
 func (s *Server) Routes() http.Handler {
 	router := chi.NewRouter()
-	router.Use(corsMiddleware)
+	router.Use(middleware.RequestID)
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{http.MethodPost, http.MethodOptions},
+		AllowedHeaders: []string{"Content-Type", "X-Request-Id"},
+		MaxAge:         86400,
+	}))
 	router.Get("/health", s.handleHealth)
 	router.Post("/", s.handleIngest)
-	router.Options("/", handleOptions)
 	router.Post("/events", s.handleIngest)
-	router.Options("/events", handleOptions)
 	return router
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok\n"))
+	render.PlainText(w, r, "ok\n")
 }
 
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
-	if err := requireJSONContentType(r); err != nil {
-		renderError(w, r, http.StatusUnsupportedMediaType, "unsupported_media_type", err.Error())
+	if render.GetRequestContentType(r) != render.ContentTypeJSON {
+		renderError(w, r, http.StatusUnsupportedMediaType, "unsupported_media_type", "Content-Type must be application/json")
 		return
 	}
 
@@ -85,7 +86,7 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestID := requestIDFrom(r)
+	requestID := middleware.GetReqID(r.Context())
 	row, value, err := event.NormalizeForClickHouse(body, requestID)
 	if err != nil {
 		renderError(w, r, http.StatusBadRequest, "bad_request", err.Error())
@@ -105,39 +106,6 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		EventID:   row.EventID,
 		RequestID: row.RequestID,
 	})
-}
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		addCORSHeaders(w)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func handleOptions(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func addCORSHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-Id")
-	w.Header().Set("Access-Control-Max-Age", "86400")
-}
-
-func requireJSONContentType(r *http.Request) error {
-	value := r.Header.Get("Content-Type")
-	if value == "" {
-		return fmt.Errorf("Content-Type must be application/json")
-	}
-	mediaType, _, err := mime.ParseMediaType(value)
-	if err != nil {
-		return fmt.Errorf("Content-Type must be application/json")
-	}
-	if mediaType != "application/json" {
-		return fmt.Errorf("Content-Type must be application/json")
-	}
-	return nil
 }
 
 func readBody(w http.ResponseWriter, r *http.Request) ([]byte, int, error) {
@@ -162,18 +130,6 @@ func readBody(w http.ResponseWriter, r *http.Request) ([]byte, int, error) {
 		return nil, http.StatusRequestEntityTooLarge, fmt.Errorf("event body exceeds max %d bytes", maxBodyBytes)
 	}
 	return body, http.StatusOK, nil
-}
-
-func requestIDFrom(r *http.Request) string {
-	if value := r.Header.Get("X-Request-Id"); value != "" {
-		return value
-	}
-
-	var bytes [8]byte
-	if _, err := rand.Read(bytes[:]); err != nil {
-		return "req_unavailable"
-	}
-	return "req_" + hex.EncodeToString(bytes[:])
 }
 
 func renderError(w http.ResponseWriter, r *http.Request, status int, code string, message string) {
