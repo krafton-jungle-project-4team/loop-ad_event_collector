@@ -33,15 +33,3 @@ Loop Ad Event Collector는 HTTP 이벤트를 검증하고 Kafka에 발행하는 
    go test ./...
    go vet ./...
    ```
-
-## Documentation
-
-- README는 프로젝트 개요, 실행 방법, HTTP API, Kafka 메시지 형식, 이벤트 검증
-  계약을 담습니다.
-- 별도 문서는 꼭 필요한 경우에만 추가합니다. 기여 흐름은 이 파일에 둡니다.
-- 참고한 외부 계약이나 작성 배경처럼 독자가 바로 실행하는 데 필요하지 않은 정보는
-  README에 나열하지 않습니다.
-- 새 개발 문서를 만들 때는 먼저 Diátaxis 유형을 하나 고릅니다: tutorial,
-  how-to guide, reference, explanation.
-- 문서가 여러 목적을 섞기 시작하면 목적별로 나눕니다.
-- The Good Docs Project 템플릿을 참고해 파일 이름과 위치를 정합니다.
