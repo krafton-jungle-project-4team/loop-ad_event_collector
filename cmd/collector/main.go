@@ -16,6 +16,7 @@ import (
 	"github.com/krafton-jungle-project-4team/loop-ad_event_collector/internal/server"
 )
 
+// main은 설정 검증, Kafka 프로듀서 생성, HTTP 서버 실행을 순서대로 수행합니다.
 func main() {
 	healthcheckURL := flag.String("healthcheck", "", "check a health URL and exit")
 	flag.Parse()
@@ -78,6 +79,7 @@ func main() {
 	}
 }
 
+// checkHealth는 컨테이너 상태 확인용 URL을 호출하고 종료 코드로 결과를 반환합니다.
 func checkHealth(url string) int {
 	client := http.Client{Timeout: 2 * time.Second}
 	resp, err := client.Get(url)
@@ -95,6 +97,7 @@ func checkHealth(url string) int {
 	return 1
 }
 
+// fatal은 복구할 수 없는 시작 실패를 로그로 남기고 프로세스를 종료합니다.
 func fatal(logger *slog.Logger, err error) {
 	logger.Error("event collector failed", "error", err)
 	os.Exit(1)

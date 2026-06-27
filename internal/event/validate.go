@@ -13,6 +13,7 @@ import (
 
 var validate = newValidator()
 
+// SDKPayload는 loop-ad_event_sdk가 전송하는 평면 JSON 이벤트 형식입니다.
 type SDKPayload struct {
 	ProjectID        string  `json:"project_id" validate:"required"`
 	EventID          string  `json:"event_id" validate:"required"`
@@ -46,6 +47,7 @@ type SDKPayload struct {
 	PropertiesJSON   string  `json:"properties_json" validate:"required,jsonobject"`
 }
 
+// ValidateSDKPayload는 Kafka에 보낼 원문 본문을 변경하지 않고 SDK 이벤트 형식만 검증합니다.
 func ValidateSDKPayload(body []byte) error {
 	var payload SDKPayload
 	decoder := json.NewDecoder(bytes.NewReader(body))
@@ -62,6 +64,7 @@ func ValidateSDKPayload(body []byte) error {
 	return nil
 }
 
+// newValidator는 SDK 이벤트 계약에 필요한 커스텀 검증 규칙을 등록합니다.
 func newValidator() *validator.Validate {
 	v := validator.New(validator.WithRequiredStructEnabled())
 	_ = v.RegisterValidation("rfc3339nano", validateRFC3339Nano)
@@ -69,11 +72,13 @@ func newValidator() *validator.Validate {
 	return v
 }
 
+// validateRFC3339Nano는 SDK가 생성한 event_time 문자열을 Go 표준 시간 파서로 검증합니다.
 func validateRFC3339Nano(field validator.FieldLevel) bool {
 	_, err := time.Parse(time.RFC3339Nano, field.Field().String())
 	return err == nil
 }
 
+// validateJSONObjectString은 properties_json이 JSON 객체 문자열인지 검증합니다.
 func validateJSONObjectString(field validator.FieldLevel) bool {
 	raw := []byte(field.Field().String())
 	trimmed := bytes.TrimSpace(raw)
