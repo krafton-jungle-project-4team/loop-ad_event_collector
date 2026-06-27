@@ -10,5 +10,5 @@ FROM alpine:3.22 AS runtime
 RUN apk add --no-cache ca-certificates tzdata
 COPY --from=build /out/loop-ad_event_collector /usr/local/bin/loop-ad_event_collector
 WORKDIR /workspace
-EXPOSE 80
+EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/loop-ad_event_collector"]

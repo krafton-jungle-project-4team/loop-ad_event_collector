@@ -44,7 +44,7 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 |---|---|---|
 | `LOOPAD_ENV` | `dev` | 실행 환경 이름 |
 | `LOOPAD_SERVICE_ID` | `event-collector` | 서비스 식별자. 다른 값이면 실패합니다. |
-| `PORT` | `80` | `0.0.0.0:${PORT}`로 listen합니다. |
+| `PORT` | `8080` | `0.0.0.0:${PORT}`로 listen합니다. |
 | `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `kafka:9092` | comma-separated Kafka bootstrap broker |
 | `LOOPAD_EVENT_TOPIC` | `loop-ad.events.raw` | raw event Kafka topic |
 
