@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -30,15 +29,7 @@ func TestHealthReturnsOK(t *testing.T) {
 func TestIngestAcceptsSDKPayloadAtRoot(t *testing.T) {
 	producer := &fakeProducer{}
 	app := New(Config{Producer: producer})
-	body := `{
-		"event_id":"evt_001",
-		"user_id":"u_001",
-		"event_time":"2026-06-27T10:00:00.000+09:00",
-		"event_name":"page_view",
-		"campaign_id":"cmp_001",
-		"creative_id":"cr_001",
-		"properties_json":"{}"
-	}`
+	body := sdkPayload
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
@@ -54,10 +45,10 @@ func TestIngestAcceptsSDKPayloadAtRoot(t *testing.T) {
 	if len(producer.messages) != 1 {
 		t.Fatalf("messages = %d, want 1", len(producer.messages))
 	}
-	if string(producer.messages[0].Key) != "evt_001" {
+	if len(producer.messages[0].Key) != 0 {
 		t.Fatalf("message key = %q", producer.messages[0].Key)
 	}
-	if !bytes.Contains(producer.messages[0].Value, []byte(`"event_type":"page_view"`)) {
+	if string(producer.messages[0].Value) != body {
 		t.Fatalf("message value = %s", producer.messages[0].Value)
 	}
 	if resp.Header().Get("Access-Control-Allow-Origin") != "*" {
@@ -67,10 +58,9 @@ func TestIngestAcceptsSDKPayloadAtRoot(t *testing.T) {
 
 func TestIngestAcceptsEventsPath(t *testing.T) {
 	app := New(Config{Producer: &fakeProducer{}})
-	body := `{"event_id":"evt_001","user_id":"u_001","event_time":"2026-06-27T01:00:00Z","event_name":"page_view"}`
 
 	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/events", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/events", strings.NewReader(sdkPayload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-Id", "req_001")
 
@@ -92,6 +82,19 @@ func TestOptionsReturnsNoContentForIngestPath(t *testing.T) {
 
 	if resp.Code < 200 || resp.Code >= 300 {
 		t.Fatalf("status = %d, want 2xx", resp.Code)
+	}
+}
+
+func TestIngestRejectsInvalidSDKPayload(t *testing.T) {
+	app := New(Config{Producer: &fakeProducer{}})
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"event_id":"evt_001"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	app.Routes().ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", resp.Code, http.StatusBadRequest)
 	}
 }
 
@@ -123,9 +126,8 @@ func TestIngestRejectsOversizedBody(t *testing.T) {
 
 func TestIngestReturnsUnavailableWhenProducerFails(t *testing.T) {
 	app := New(Config{Producer: &fakeProducer{err: errors.New("kafka down")}})
-	body := `{"event_id":"evt_001","user_id":"u_001","event_time":"2026-06-27T01:00:00Z","event_name":"page_view"}`
 	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(sdkPayload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-Id", "req_001")
 
@@ -148,3 +150,36 @@ func (f *fakeProducer) Produce(_ context.Context, message producer.Message) erro
 	f.messages = append(f.messages, message)
 	return nil
 }
+
+const sdkPayload = `{
+	"project_id":"demo-shoppingmall",
+	"event_id":"evt_001",
+	"user_id":"u_001",
+	"session_id":"s_001",
+	"event_time":"2026-06-27T10:00:00.000Z",
+	"event_name":"page_view",
+	"channel":"demo",
+	"campaign_id":"cmp_001",
+	"age_group":"30s",
+	"gender":"male",
+	"device":"mobile",
+	"category":"Home/Eco-Friendly",
+	"product_id":"GGOEGCBD142299",
+	"inventory_status":"in_stock",
+	"price":12900,
+	"quantity":1,
+	"revenue":12900,
+	"coupon_id":"",
+	"order_id":"",
+	"experiment_id":"",
+	"variant_id":"",
+	"action_id":"",
+	"mapping_id":"",
+	"ad_id":"",
+	"creative_id":"cr_001",
+	"bandit_policy_id":"",
+	"bandit_arm_id":"",
+	"bandit_decision_id":"",
+	"reward_value":0,
+	"properties_json":"{\"page\":{\"path\":\"/products/sku-1\"},\"sdk\":{\"name\":\"loop-ad_event_sdk\"}}"
+}`

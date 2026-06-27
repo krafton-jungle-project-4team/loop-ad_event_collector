@@ -31,7 +31,7 @@ func NewKafka(cfg KafkaConfig) *Kafka {
 		writer: &kafka.Writer{
 			Addr:         kafka.TCP(cfg.Brokers...),
 			Topic:        cfg.Topic,
-			Balancer:     &kafka.Hash{},
+			Balancer:     &kafka.LeastBytes{},
 			RequiredAcks: kafka.RequireAll,
 			Async:        false,
 			BatchSize:    100,

@@ -1,15 +1,14 @@
 # loop-ad_event_collector
 
 Loop Ad Event Collector는 SDK와 데모 쇼핑몰에서 오는 HTTP 이벤트를 받아 Kafka
-topic `loop-ad.events.raw`로 발행하는 서버입니다. Kafka 뒤에서는 ClickHouse가
-`JSONEachRow` 형식으로 메시지를 읽어 `loopad.raw_events`에 적재합니다.
+topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부 연결은 Kafka뿐이며,
+요청 body는 검증 후 Kafka message value로 그대로 보존합니다.
 
 ## 참고한 계약
 
 - `loop-ad_infra/docs/app-repository-guide.md`: 서버 repo 형식, `PORT`,
   `LOOPAD_SERVICE_ID`, Kafka env contract.
-- `loop-ad_local-data-source_contract/clickhouse/schema.sql`: ClickHouse
-  `loopad.raw_events` 구조.
+- `loop-ad_event_sdk`: 브라우저 SDK가 생성하는 event payload 형식.
 - `loop-ad_event-pipeline_demo`: Go 기반 HTTP collector prototype과 Kafka 발행
   흐름.
 
@@ -23,7 +22,7 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. Kafka 뒤에서는 C
 
 요청 `Content-Type`은 `application/json`이어야 합니다. 브라우저 SDK 호출을 위해
 ingest path는 `OPTIONS` preflight와 `Access-Control-Allow-Origin: *`를
-지원합니다.
+지원합니다. 요청 body는 `loop-ad_event_sdk`의 payload 형식으로 검증합니다.
 
 ## Required Env
 
@@ -81,6 +80,5 @@ curl -i -X POST http://localhost:8080/ \
   }'
 ```
 
-ClickHouse 컬럼별 매핑은
-[docs/clickhouse-event-structure.md](docs/clickhouse-event-structure.md)에
+Kafka message 형식은 [docs/kafka-event-payload.md](docs/kafka-event-payload.md)에
 정리했습니다.

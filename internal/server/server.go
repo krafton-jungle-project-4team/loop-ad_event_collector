@@ -34,9 +34,7 @@ type Server struct {
 }
 
 type acceptedResponse struct {
-	Accepted  int    `json:"accepted"`
-	EventID   string `json:"event_id"`
-	RequestID string `json:"request_id"`
+	Accepted int `json:"accepted"`
 }
 
 type errorResponse struct {
@@ -86,24 +84,21 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestID := middleware.GetReqID(r.Context())
-	row, value, err := event.NormalizeForClickHouse(body, requestID)
-	if err != nil {
+	if err := event.ValidateSDKPayload(body); err != nil {
 		renderError(w, r, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 
-	if err := s.producer.Produce(r.Context(), producer.Message{Key: []byte(row.EventID), Value: value}); err != nil {
-		s.logger.Error("event publish failed", "error", err, "event_id", row.EventID, "request_id", row.RequestID)
+	if err := s.producer.Produce(r.Context(), producer.Message{Value: body}); err != nil {
+		s.logger.Error("event publish failed", "error", err, "request_id", requestID)
 		renderError(w, r, http.StatusServiceUnavailable, "service_unavailable", "event publish failed")
 		return
 	}
 
-	s.logger.Info("event accepted", "event_id", row.EventID, "request_id", row.RequestID, "event_type", row.EventType)
+	s.logger.Info("event accepted", "request_id", requestID, "body_bytes", len(body))
 	render.Status(r, http.StatusAccepted)
 	render.JSON(w, r, acceptedResponse{
-		Accepted:  1,
-		EventID:   row.EventID,
-		RequestID: row.RequestID,
+		Accepted: 1,
 	})
 }
 
