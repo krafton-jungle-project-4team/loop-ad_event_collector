@@ -6,17 +6,21 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
+var validate = validator.New(validator.WithRequiredStructEnabled())
+
 type RawEvent struct {
-	EventID    string `json:"event_id"`
-	UserID     string `json:"user_id"`
+	EventID    string `json:"event_id" validate:"required"`
+	UserID     string `json:"user_id" validate:"required"`
 	CampaignID string `json:"campaign_id"`
 	CreativeID string `json:"creative_id"`
-	EventType  string `json:"event_type"`
-	OccurredAt string `json:"occurred_at"`
-	RequestID  string `json:"request_id"`
-	Payload    string `json:"payload"`
+	EventType  string `json:"event_type" validate:"required"`
+	OccurredAt string `json:"occurred_at" validate:"required"`
+	RequestID  string `json:"request_id" validate:"required"`
+	Payload    string `json:"payload" validate:"required"`
 }
 
 type incomingEvent struct {
@@ -40,14 +44,8 @@ func NormalizeForClickHouse(body []byte, fallbackRequestID string) (RawEvent, []
 	}
 
 	var incoming incomingEvent
-	decoder := json.NewDecoder(bytes.NewReader(compacted))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&incoming); err != nil {
-		var loose incomingEvent
-		if looseErr := json.Unmarshal(compacted, &loose); looseErr != nil {
-			return RawEvent{}, nil, fmt.Errorf("event body must be a JSON object")
-		}
-		incoming = loose
+	if err := json.Unmarshal(compacted, &incoming); err != nil {
+		return RawEvent{}, nil, fmt.Errorf("event body must be a JSON object")
 	}
 
 	eventType := firstNonEmpty(incoming.EventType, incoming.EventName)
@@ -66,30 +64,27 @@ func NormalizeForClickHouse(body []byte, fallbackRequestID string) (RawEvent, []
 		RequestID:  firstNonEmpty(incoming.RequestID, fallbackRequestID),
 	}
 
-	if row.EventID == "" {
-		return RawEvent{}, nil, fmt.Errorf("event_id is required")
-	}
-	if row.UserID == "" {
-		return RawEvent{}, nil, fmt.Errorf("user_id is required")
-	}
-	if row.EventType == "" {
-		return RawEvent{}, nil, fmt.Errorf("event_type or event_name is required")
-	}
-	if row.RequestID == "" {
-		return RawEvent{}, nil, fmt.Errorf("request_id is required")
-	}
-
 	payload, err := normalizePayload(incoming.Payload, compacted)
 	if err != nil {
 		return RawEvent{}, nil, err
 	}
 	row.Payload = payload
+	if err := validateRawEvent(row); err != nil {
+		return RawEvent{}, nil, err
+	}
 
 	value, err := json.Marshal(row)
 	if err != nil {
 		return RawEvent{}, nil, err
 	}
 	return row, value, nil
+}
+
+func validateRawEvent(row RawEvent) error {
+	if err := validate.Struct(row); err != nil {
+		return fmt.Errorf("event row is invalid: %w", err)
+	}
+	return nil
 }
 
 func normalizeOccurredAt(value string) (string, error) {

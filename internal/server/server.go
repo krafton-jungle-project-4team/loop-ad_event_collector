@@ -12,6 +12,8 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/krafton-jungle-project-4team/loop-ad_event_collector/internal/event"
 	"github.com/krafton-jungle-project-4team/loop-ad_event_collector/internal/producer"
 )
@@ -44,44 +46,23 @@ func New(cfg Config) *Server {
 }
 
 func (s *Server) Routes() http.Handler {
-	return http.HandlerFunc(s.handle)
-}
-
-func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
-	addCORSHeaders(w)
-
-	if isIngestPath(r.URL.Path) && r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	switch {
-	case r.URL.Path == "/health":
-		s.handleHealth(w, r)
-	case isIngestPath(r.URL.Path):
-		s.handleIngest(w, r)
-	default:
-		writeError(w, http.StatusNotFound, "not_found", "route not found")
-	}
+	router := chi.NewRouter()
+	router.Use(corsMiddleware)
+	router.Get("/health", s.handleHealth)
+	router.Post("/", s.handleIngest)
+	router.Options("/", handleOptions)
+	router.Post("/events", s.handleIngest)
+	router.Options("/events", handleOptions)
+	return router
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
-		return
-	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_, _ = w.Write([]byte("ok\n"))
-	}
+	_, _ = w.Write([]byte("ok\n"))
 }
 
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
-		return
-	}
 	if err := requireJSONContentType(r); err != nil {
 		writeError(w, http.StatusUnsupportedMediaType, "unsupported_media_type", err.Error())
 		return
@@ -114,8 +95,15 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func isIngestPath(path string) bool {
-	return path == "/" || path == "/events"
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		addCORSHeaders(w)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func handleOptions(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func addCORSHeaders(w http.ResponseWriter) {
