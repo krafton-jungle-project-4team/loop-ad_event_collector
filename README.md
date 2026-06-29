@@ -12,10 +12,6 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 
 ## HTTP API
 
-Dev public endpoint는 `https://event.api.dev.loop-ad.org`입니다. Public ALB는
-host-header로 `event-collector` target group에 연결하므로 앱은 별도
-`/api/event` prefix를 요구하지 않습니다.
-
 | Method | Path | 설명 |
 |---|---|---|
 | `GET` | `/health` | ECS/NLB health check. 정상일 때 `200`과 `ok`를 반환합니다. |
@@ -60,8 +56,6 @@ host-header로 `event-collector` target group에 연결하므로 앱은 별도
 파싱하고 검증합니다. `.env`가 없으면 ECS처럼 주입된 환경변수만 사용합니다.
 필수 env가 없거나 형식이 틀리면 Kafka 연결 전에 바로 실패합니다.
 현재 collector는 `SASL_PLAINTEXT`와 `SCRAM-SHA-512` Kafka 연결을 사용합니다.
-ECS runtime env와 secret은 infra repo의 task definition에서 주입하며, 앱
-deploy workflow나 Docker image에는 값을 넣지 않습니다.
 
 로컬 예시는 [.env.example](.env.example)에 있습니다.
 
