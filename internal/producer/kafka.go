@@ -42,16 +42,14 @@ func NewKafka(cfg KafkaConfig) (*Kafka, error) {
 	}
 
 	return &Kafka{
-		writer: kafka.NewWriter(kafka.WriterConfig{
-			Brokers: cfg.Brokers,
-			Topic:   cfg.Topic,
-			Dialer: &kafka.Dialer{
-				Timeout:       10 * time.Second,
-				DualStack:     true,
-				SASLMechanism: mechanism,
+		writer: &kafka.Writer{
+			Addr:  kafka.TCP(cfg.Brokers...),
+			Topic: cfg.Topic,
+			Transport: &kafka.Transport{
+				SASL: mechanism,
 			},
 			Balancer:     &kafka.LeastBytes{},
-			RequiredAcks: int(kafka.RequireAll),
+			RequiredAcks: kafka.RequireAll,
 			Async:        false,
 			BatchSize:    100,
 			BatchBytes:   1 << 20,
@@ -59,7 +57,7 @@ func NewKafka(cfg KafkaConfig) (*Kafka, error) {
 			WriteTimeout: 10 * time.Second,
 			ReadTimeout:  10 * time.Second,
 			MaxAttempts:  3,
-		}),
+		},
 	}, nil
 }
 
