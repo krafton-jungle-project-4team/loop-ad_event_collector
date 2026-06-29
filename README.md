@@ -45,12 +45,19 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 | `LOOPAD_ENV` | `dev` | 실행 환경 이름 |
 | `LOOPAD_SERVICE_ID` | `event-collector` | 서비스 식별자. 다른 값이면 실패합니다. |
 | `PORT` | `8080` | `0.0.0.0:${PORT}`로 listen합니다. |
-| `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `kafka:9092` | comma-separated Kafka bootstrap broker |
+| `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `ip-10-0-1-10:9094` | comma-separated Kafka bootstrap broker |
+| `LOOPAD_KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` | Kafka security protocol. 빈 값 또는 `PLAINTEXT`이면 SASL 없이 연결합니다. |
+| `LOOPAD_KAFKA_SASL_MECHANISM` | `SCRAM-SHA-512` | `SASL_PLAINTEXT`에서 사용하는 SASL mechanism |
+| `LOOPAD_KAFKA_USERNAME` | `event-collector` | `SASL_PLAINTEXT`에서 필요한 Kafka username |
+| `LOOPAD_KAFKA_PASSWORD` | secret value | `SASL_PLAINTEXT`에서 필요한 Kafka password |
 | `LOOPAD_EVENT_TOPIC` | `loop-ad.events.raw` | raw event Kafka topic |
 
 서버는 시작하자마자 `.env` 파일이 있으면 먼저 로드한 뒤, 실제 환경변수 전체를
 파싱하고 검증합니다. `.env`가 없으면 ECS처럼 주입된 환경변수만 사용합니다.
 필수 env가 없거나 형식이 틀리면 Kafka 연결 전에 바로 실패합니다.
+`SASL_PLAINTEXT`는 `SCRAM-SHA-512`와 username/password가 모두 있어야 하며,
+기존 plaintext 로컬 개발은 `LOOPAD_KAFKA_SECURITY_PROTOCOL`을 비우거나
+`PLAINTEXT`로 설정했을 때만 사용합니다.
 
 로컬 예시는 [.env.example](.env.example)에 있습니다.
 

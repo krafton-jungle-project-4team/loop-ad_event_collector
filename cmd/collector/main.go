@@ -31,10 +31,17 @@ func main() {
 		fatal(logger, err)
 	}
 
-	kafkaProducer := producer.NewKafka(producer.KafkaConfig{
-		Brokers: cfg.KafkaBootstrapBrokers,
-		Topic:   cfg.EventTopic,
+	kafkaProducer, err := producer.NewKafka(producer.KafkaConfig{
+		Brokers:          cfg.KafkaBootstrapBrokers,
+		Topic:            cfg.EventTopic,
+		SecurityProtocol: cfg.KafkaSecurityProtocol,
+		SASLMechanism:    cfg.KafkaSASLMechanism,
+		Username:         cfg.KafkaUsername,
+		Password:         cfg.KafkaPassword,
 	})
+	if err != nil {
+		fatal(logger, err)
+	}
 	defer func() {
 		if err := kafkaProducer.Close(); err != nil {
 			logger.Error("kafka producer close failed", "error", err)
