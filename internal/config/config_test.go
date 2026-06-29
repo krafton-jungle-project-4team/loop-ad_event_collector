@@ -4,6 +4,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -21,6 +22,18 @@ func TestLoadParsesRequiredEnv(t *testing.T) {
 	if len(cfg.KafkaBootstrapBrokers) != 2 {
 		t.Fatalf("brokers = %#v", cfg.KafkaBootstrapBrokers)
 	}
+	if cfg.KafkaSecurityProtocol != "SASL_PLAINTEXT" {
+		t.Fatalf("KafkaSecurityProtocol = %q", cfg.KafkaSecurityProtocol)
+	}
+	if cfg.KafkaSASLMechanism != "SCRAM-SHA-512" {
+		t.Fatalf("KafkaSASLMechanism = %q", cfg.KafkaSASLMechanism)
+	}
+	if cfg.KafkaUsername != "event-collector" {
+		t.Fatal("KafkaUsername was not parsed")
+	}
+	if cfg.KafkaPassword == "" {
+		t.Fatal("KafkaPassword was not parsed")
+	}
 }
 
 func TestLoadReadsDotenvFile(t *testing.T) {
@@ -32,7 +45,11 @@ func TestLoadReadsDotenvFile(t *testing.T) {
 LOOPAD_ENV=dev
 LOOPAD_SERVICE_ID=event-collector
 PORT=9090
-LOOPAD_KAFKA_BOOTSTRAP_BROKERS=kafka:9092
+LOOPAD_KAFKA_BOOTSTRAP_BROKERS=kafka:9094
+LOOPAD_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT
+LOOPAD_KAFKA_SASL_MECHANISM=SCRAM-SHA-512
+LOOPAD_KAFKA_USERNAME=event-collector
+LOOPAD_KAFKA_PASSWORD=test-password
 LOOPAD_EVENT_TOPIC=loop-ad.events.raw
 `)
 	if err := os.WriteFile(filepath.Join(dir, ".env"), dotenv, 0o600); err != nil {
@@ -69,6 +86,24 @@ func TestLoadRejectsMissingEnv(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsMissingSCRAMCredentials(t *testing.T) {
+	chdirTemp(t)
+	setConfigEnv(t, map[string]string{
+		"LOOPAD_KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
+		"LOOPAD_KAFKA_SASL_MECHANISM":    "SCRAM-SHA-512",
+		"LOOPAD_KAFKA_USERNAME":          "",
+		"LOOPAD_KAFKA_PASSWORD":          "test-password",
+	})
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() error = nil, want missing SCRAM credential error")
+	}
+	if strings.Contains(err.Error(), "test-password") {
+		t.Fatal("Load() error exposed Kafka password")
+	}
+}
+
 func TestLoadRejectsOutOfRangePort(t *testing.T) {
 	chdirTemp(t)
 	setConfigEnv(t, map[string]string{"PORT": "70000"})
@@ -86,7 +121,11 @@ func setConfigEnv(t *testing.T, overrides map[string]string) {
 		"LOOPAD_ENV":                     "dev",
 		"LOOPAD_SERVICE_ID":              "event-collector",
 		"PORT":                           "8080",
-		"LOOPAD_KAFKA_BOOTSTRAP_BROKERS": "kafka-1:9092,kafka-2:9092",
+		"LOOPAD_KAFKA_BOOTSTRAP_BROKERS": "kafka-1:9094,kafka-2:9094",
+		"LOOPAD_KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
+		"LOOPAD_KAFKA_SASL_MECHANISM":    "SCRAM-SHA-512",
+		"LOOPAD_KAFKA_USERNAME":          "event-collector",
+		"LOOPAD_KAFKA_PASSWORD":          "test-password",
 		"LOOPAD_EVENT_TOPIC":             "loop-ad.events.raw",
 	}
 	maps.Copy(values, overrides)
@@ -100,6 +139,10 @@ var configEnvKeys = []string{
 	"LOOPAD_SERVICE_ID",
 	"PORT",
 	"LOOPAD_KAFKA_BOOTSTRAP_BROKERS",
+	"LOOPAD_KAFKA_SECURITY_PROTOCOL",
+	"LOOPAD_KAFKA_SASL_MECHANISM",
+	"LOOPAD_KAFKA_USERNAME",
+	"LOOPAD_KAFKA_PASSWORD",
 	"LOOPAD_EVENT_TOPIC",
 }
 

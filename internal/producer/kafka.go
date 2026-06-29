@@ -2,9 +2,11 @@ package producer
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
 // Message는 collector가 Kafka에 발행할 key/value 바이트입니다.
@@ -21,8 +23,10 @@ type Producer interface {
 
 // KafkaConfig는 Kafka writer 생성에 필요한 브로커와 토픽 설정입니다.
 type KafkaConfig struct {
-	Brokers []string
-	Topic   string
+	Brokers  []string
+	Topic    string
+	Username string
+	Password string
 }
 
 // Kafka는 segmentio/kafka-go writer를 감싼 프로듀서 구현입니다.
@@ -31,11 +35,19 @@ type Kafka struct {
 }
 
 // NewKafka는 ack를 기다리는 동기 발행 설정으로 Kafka 프로듀서를 생성합니다.
-func NewKafka(cfg KafkaConfig) *Kafka {
+func NewKafka(cfg KafkaConfig) (*Kafka, error) {
+	mechanism, err := scram.Mechanism(scram.SHA512, cfg.Username, cfg.Password)
+	if err != nil {
+		return nil, fmt.Errorf("create kafka SASL mechanism: %w", err)
+	}
+
 	return &Kafka{
 		writer: &kafka.Writer{
-			Addr:         kafka.TCP(cfg.Brokers...),
-			Topic:        cfg.Topic,
+			Addr:  kafka.TCP(cfg.Brokers...),
+			Topic: cfg.Topic,
+			Transport: &kafka.Transport{
+				SASL: mechanism,
+			},
 			Balancer:     &kafka.LeastBytes{},
 			RequiredAcks: kafka.RequireAll,
 			Async:        false,
@@ -46,7 +58,7 @@ func NewKafka(cfg KafkaConfig) *Kafka {
 			ReadTimeout:  10 * time.Second,
 			MaxAttempts:  3,
 		},
-	}
+	}, nil
 }
 
 // Produce는 메시지가 Kafka에 ack될 때까지 동기적으로 발행합니다.

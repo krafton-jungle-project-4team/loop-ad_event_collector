@@ -18,6 +18,10 @@ type Config struct {
 	ServiceID             string   `env:"LOOPAD_SERVICE_ID" validate:"required,eq=event-collector"`
 	Port                  int      `env:"PORT" validate:"min=1,max=65535"`
 	KafkaBootstrapBrokers []string `env:"LOOPAD_KAFKA_BOOTSTRAP_BROKERS" envSeparator:"," validate:"required,min=1,dive,required"`
+	KafkaSecurityProtocol string   `env:"LOOPAD_KAFKA_SECURITY_PROTOCOL" validate:"required,oneof=SASL_PLAINTEXT"`
+	KafkaSASLMechanism    string   `env:"LOOPAD_KAFKA_SASL_MECHANISM" validate:"required,oneof=SCRAM-SHA-512"`
+	KafkaUsername         string   `env:"LOOPAD_KAFKA_USERNAME" validate:"required"`
+	KafkaPassword         string   `env:"LOOPAD_KAFKA_PASSWORD" validate:"required"`
 	EventTopic            string   `env:"LOOPAD_EVENT_TOPIC" validate:"required"`
 }
 
