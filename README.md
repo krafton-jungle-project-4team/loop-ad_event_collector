@@ -45,12 +45,12 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 | `LOOPAD_ENV` | `dev` | 실행 환경 이름 |
 | `LOOPAD_SERVICE_ID` | `event-collector` | 서비스 식별자. 다른 값이면 실패합니다. |
 | `PORT` | `8080` | `0.0.0.0:${PORT}`로 listen합니다. |
-| `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `ip-10-0-1-10:9094` | comma-separated Kafka bootstrap broker |
-| `LOOPAD_KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` | Kafka security protocol |
-| `LOOPAD_KAFKA_SASL_MECHANISM` | `SCRAM-SHA-512` | `SASL_PLAINTEXT`에서 사용하는 SASL mechanism |
-| `LOOPAD_KAFKA_USERNAME` | `event-collector` | `SASL_PLAINTEXT`에서 필요한 Kafka username |
-| `LOOPAD_KAFKA_PASSWORD` | secret value | `SASL_PLAINTEXT`에서 필요한 Kafka password |
-| `LOOPAD_EVENT_TOPIC` | `loop-ad.events.raw` | raw event Kafka topic |
+| `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `ip-10-0-1-10:9094` | 쉼표로 구분한 Kafka bootstrap broker 목록 |
+| `LOOPAD_KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` | Kafka 보안 프로토콜 |
+| `LOOPAD_KAFKA_SASL_MECHANISM` | `SCRAM-SHA-512` | `SASL_PLAINTEXT`에서 사용하는 SASL 메커니즘 |
+| `LOOPAD_KAFKA_USERNAME` | `event-collector` | `SASL_PLAINTEXT`에서 필요한 Kafka 사용자 이름 |
+| `LOOPAD_KAFKA_PASSWORD` | secret 값 | `SASL_PLAINTEXT`에서 필요한 Kafka 비밀번호 |
+| `LOOPAD_EVENT_TOPIC` | `loop-ad.events.raw` | 원본 이벤트 Kafka topic |
 
 서버는 시작하자마자 `.env` 파일이 있으면 먼저 로드한 뒤, 실제 환경변수 전체를
 파싱하고 검증합니다. `.env`가 없으면 ECS처럼 주입된 환경변수만 사용합니다.
