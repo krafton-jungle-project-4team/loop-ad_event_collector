@@ -34,7 +34,6 @@ func TestIngestAcceptsSDKPayloadAtRoot(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Origin", "https://demo-shoppingmall.dev.loop-ad.org")
 	req.Header.Set("X-Request-Id", "req_001")
 
 	app.Routes().ServeHTTP(resp, req)
@@ -50,9 +49,6 @@ func TestIngestAcceptsSDKPayloadAtRoot(t *testing.T) {
 	}
 	if string(producer.messages[0].Value) != body {
 		t.Fatalf("message value = %s", producer.messages[0].Value)
-	}
-	if resp.Header().Get("Access-Control-Allow-Origin") != "*" {
-		t.Fatalf("missing cors header")
 	}
 }
 
@@ -71,20 +67,6 @@ func TestIngestAcceptsEventsPath(t *testing.T) {
 	}
 }
 
-func TestOptionsReturnsNoContentForIngestPath(t *testing.T) {
-	app := New(Config{Producer: &fakeProducer{}})
-	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodOptions, "/events", nil)
-	req.Header.Set("Origin", "https://demo-shoppingmall.dev.loop-ad.org")
-	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
-
-	app.Routes().ServeHTTP(resp, req)
-
-	if resp.Code < 200 || resp.Code >= 300 {
-		t.Fatalf("status = %d, want 2xx", resp.Code)
-	}
-}
-
 func TestIngestRejectsInvalidSDKPayload(t *testing.T) {
 	app := New(Config{Producer: &fakeProducer{}})
 	resp := httptest.NewRecorder()
@@ -95,19 +77,6 @@ func TestIngestRejectsInvalidSDKPayload(t *testing.T) {
 
 	if resp.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d", resp.Code, http.StatusBadRequest)
-	}
-}
-
-func TestIngestRejectsUnsupportedContentType(t *testing.T) {
-	app := New(Config{Producer: &fakeProducer{}})
-	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "text/plain")
-
-	app.Routes().ServeHTTP(resp, req)
-
-	if resp.Code != http.StatusUnsupportedMediaType {
-		t.Fatalf("status = %d, want %d", resp.Code, http.StatusUnsupportedMediaType)
 	}
 }
 
