@@ -71,10 +71,30 @@ func TestIngestAcceptsEventsPath(t *testing.T) {
 	}
 }
 
+func TestIngestAcceptsPublicApiEventPaths(t *testing.T) {
+	paths := []string{"/api/event/", "/api/event/events"}
+	for _, path := range paths {
+		t.Run(path, func(t *testing.T) {
+			app := New(Config{Producer: &fakeProducer{}})
+
+			resp := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(sdkPayload))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Request-Id", "req_001")
+
+			app.Routes().ServeHTTP(resp, req)
+
+			if resp.Code != http.StatusAccepted {
+				t.Fatalf("status = %d, body = %s", resp.Code, resp.Body.String())
+			}
+		})
+	}
+}
+
 func TestOptionsReturnsNoContentForIngestPath(t *testing.T) {
 	app := New(Config{Producer: &fakeProducer{}})
 	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodOptions, "/events", nil)
+	req := httptest.NewRequest(http.MethodOptions, "/api/event/events", nil)
 	req.Header.Set("Origin", "https://demo-shoppingmall.dev.loop-ad.org")
 	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
 

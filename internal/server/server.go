@@ -73,6 +73,8 @@ func (s *Server) Routes() http.Handler {
 		router.Use(middleware.RequestSize(maxBodyBytes))
 		router.Post("/", s.handleIngest)
 		router.Post("/events", s.handleIngest)
+		router.Post("/api/event/", s.handleIngest)
+		router.Post("/api/event/events", s.handleIngest)
 	})
 	return router
 }

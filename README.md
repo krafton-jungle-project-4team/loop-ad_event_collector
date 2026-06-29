@@ -17,6 +17,8 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 | `GET` | `/health` | ECS/NLB health check. 정상일 때 `200`과 `ok`를 반환합니다. |
 | `POST` | `/` | SDK 기본 endpoint용 ingest path입니다. |
 | `POST` | `/events` | 명시적 ingest path입니다. |
+| `POST` | `/api/event/` | dev public ALB route에서 전달되는 ingest path입니다. |
+| `POST` | `/api/event/events` | dev public ALB route에서 전달되는 명시적 ingest path입니다. |
 
 요청 `Content-Type`은 `application/json`이어야 하며 본문은 최대 256 KiB입니다.
 브라우저 SDK 호출을 위해 ingest path는 `OPTIONS` preflight와
