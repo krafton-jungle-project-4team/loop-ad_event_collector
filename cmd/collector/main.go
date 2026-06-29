@@ -32,12 +32,10 @@ func main() {
 	}
 
 	kafkaProducer, err := producer.NewKafka(producer.KafkaConfig{
-		Brokers:          cfg.KafkaBootstrapBrokers,
-		Topic:            cfg.EventTopic,
-		SecurityProtocol: cfg.KafkaSecurityProtocol,
-		SASLMechanism:    cfg.KafkaSASLMechanism,
-		Username:         cfg.KafkaUsername,
-		Password:         cfg.KafkaPassword,
+		Brokers:  cfg.KafkaBootstrapBrokers,
+		Topic:    cfg.EventTopic,
+		Username: cfg.KafkaUsername,
+		Password: cfg.KafkaPassword,
 	})
 	if err != nil {
 		fatal(logger, err)

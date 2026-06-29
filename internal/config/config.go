@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/go-playground/validator/v10"
@@ -19,10 +18,10 @@ type Config struct {
 	ServiceID             string   `env:"LOOPAD_SERVICE_ID" validate:"required,eq=event-collector"`
 	Port                  int      `env:"PORT" validate:"min=1,max=65535"`
 	KafkaBootstrapBrokers []string `env:"LOOPAD_KAFKA_BOOTSTRAP_BROKERS" envSeparator:"," validate:"required,min=1,dive,required"`
-	KafkaSecurityProtocol string   `env:"LOOPAD_KAFKA_SECURITY_PROTOCOL" envDefault:"" validate:"omitempty,oneof=PLAINTEXT SASL_PLAINTEXT"`
-	KafkaSASLMechanism    string   `env:"LOOPAD_KAFKA_SASL_MECHANISM" envDefault:"" validate:"omitempty,oneof=SCRAM-SHA-512"`
-	KafkaUsername         string   `env:"LOOPAD_KAFKA_USERNAME" envDefault:""`
-	KafkaPassword         string   `env:"LOOPAD_KAFKA_PASSWORD" envDefault:""`
+	KafkaSecurityProtocol string   `env:"LOOPAD_KAFKA_SECURITY_PROTOCOL" validate:"required,oneof=SASL_PLAINTEXT"`
+	KafkaSASLMechanism    string   `env:"LOOPAD_KAFKA_SASL_MECHANISM" validate:"required,oneof=SCRAM-SHA-512"`
+	KafkaUsername         string   `env:"LOOPAD_KAFKA_USERNAME" validate:"required"`
+	KafkaPassword         string   `env:"LOOPAD_KAFKA_PASSWORD" validate:"required"`
 	EventTopic            string   `env:"LOOPAD_EVENT_TOPIC" validate:"required"`
 }
 
@@ -38,12 +37,8 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	cfg.normalizeKafkaAuth()
 
 	if err := validate.Struct(cfg); err != nil {
-		return Config{}, fmt.Errorf("config validation failed: %w", err)
-	}
-	if err := cfg.validateKafkaAuth(); err != nil {
 		return Config{}, fmt.Errorf("config validation failed: %w", err)
 	}
 
@@ -53,31 +48,6 @@ func Load() (Config, error) {
 // ListenAddr은 HTTP 서버가 바인딩할 주소를 반환합니다.
 func (c Config) ListenAddr() string {
 	return fmt.Sprintf("0.0.0.0:%d", c.Port)
-}
-
-func (c *Config) normalizeKafkaAuth() {
-	c.KafkaSecurityProtocol = strings.ToUpper(strings.TrimSpace(c.KafkaSecurityProtocol))
-	c.KafkaSASLMechanism = strings.ToUpper(strings.TrimSpace(c.KafkaSASLMechanism))
-}
-
-func (c Config) validateKafkaAuth() error {
-	switch c.KafkaSecurityProtocol {
-	case "", "PLAINTEXT":
-		if c.KafkaSASLMechanism != "" {
-			return errors.New("LOOPAD_KAFKA_SASL_MECHANISM requires LOOPAD_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT")
-		}
-		return nil
-	case "SASL_PLAINTEXT":
-		if c.KafkaSASLMechanism == "" {
-			return errors.New("LOOPAD_KAFKA_SASL_MECHANISM is required when LOOPAD_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT")
-		}
-		if strings.TrimSpace(c.KafkaUsername) == "" || strings.TrimSpace(c.KafkaPassword) == "" {
-			return errors.New("LOOPAD_KAFKA_USERNAME and LOOPAD_KAFKA_PASSWORD are required when LOOPAD_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT")
-		}
-		return nil
-	default:
-		return nil
-	}
 }
 
 // loadDotenv는 로컬 개발용 .env 파일이 있으면 로드하고 없으면 조용히 넘어갑니다.

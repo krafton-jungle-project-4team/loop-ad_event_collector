@@ -33,7 +33,11 @@ func TestLoadReadsDotenvFile(t *testing.T) {
 LOOPAD_ENV=dev
 LOOPAD_SERVICE_ID=event-collector
 PORT=9090
-LOOPAD_KAFKA_BOOTSTRAP_BROKERS=kafka:9092
+LOOPAD_KAFKA_BOOTSTRAP_BROKERS=kafka:9094
+LOOPAD_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT
+LOOPAD_KAFKA_SASL_MECHANISM=SCRAM-SHA-512
+LOOPAD_KAFKA_USERNAME=event-collector
+LOOPAD_KAFKA_PASSWORD=test-password
 LOOPAD_EVENT_TOPIC=loop-ad.events.raw
 `)
 	if err := os.WriteFile(filepath.Join(dir, ".env"), dotenv, 0o600); err != nil {
@@ -133,11 +137,11 @@ func setConfigEnv(t *testing.T, overrides map[string]string) {
 		"LOOPAD_ENV":                     "dev",
 		"LOOPAD_SERVICE_ID":              "event-collector",
 		"PORT":                           "8080",
-		"LOOPAD_KAFKA_BOOTSTRAP_BROKERS": "kafka-1:9092,kafka-2:9092",
-		"LOOPAD_KAFKA_SECURITY_PROTOCOL": "",
-		"LOOPAD_KAFKA_SASL_MECHANISM":    "",
-		"LOOPAD_KAFKA_USERNAME":          "",
-		"LOOPAD_KAFKA_PASSWORD":          "",
+		"LOOPAD_KAFKA_BOOTSTRAP_BROKERS": "kafka-1:9094,kafka-2:9094",
+		"LOOPAD_KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
+		"LOOPAD_KAFKA_SASL_MECHANISM":    "SCRAM-SHA-512",
+		"LOOPAD_KAFKA_USERNAME":          "event-collector",
+		"LOOPAD_KAFKA_PASSWORD":          "test-password",
 		"LOOPAD_EVENT_TOPIC":             "loop-ad.events.raw",
 	}
 	maps.Copy(values, overrides)
