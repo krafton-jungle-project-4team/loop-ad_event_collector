@@ -31,9 +31,7 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
-	cfg, err := env.ParseAsWithOptions[Config](env.Options{
-		RequiredIfNoDef: true,
-	})
+	cfg, err := env.ParseAs[Config]()
 	if err != nil {
 		return Config{}, err
 	}
