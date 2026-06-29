@@ -22,6 +22,18 @@ func TestLoadParsesRequiredEnv(t *testing.T) {
 	if len(cfg.KafkaBootstrapBrokers) != 2 {
 		t.Fatalf("brokers = %#v", cfg.KafkaBootstrapBrokers)
 	}
+	if cfg.KafkaSecurityProtocol != "SASL_PLAINTEXT" {
+		t.Fatalf("KafkaSecurityProtocol = %q", cfg.KafkaSecurityProtocol)
+	}
+	if cfg.KafkaSASLMechanism != "SCRAM-SHA-512" {
+		t.Fatalf("KafkaSASLMechanism = %q", cfg.KafkaSASLMechanism)
+	}
+	if cfg.KafkaUsername != "event-collector" {
+		t.Fatal("KafkaUsername was not parsed")
+	}
+	if cfg.KafkaPassword == "" {
+		t.Fatal("KafkaPassword was not parsed")
+	}
 }
 
 func TestLoadReadsDotenvFile(t *testing.T) {
@@ -50,34 +62,6 @@ LOOPAD_EVENT_TOPIC=loop-ad.events.raw
 	}
 	if cfg.ListenAddr() != "0.0.0.0:9090" {
 		t.Fatalf("ListenAddr() = %q", cfg.ListenAddr())
-	}
-}
-
-func TestLoadParsesSCRAMKafkaEnv(t *testing.T) {
-	chdirTemp(t)
-	setConfigEnv(t, map[string]string{
-		"LOOPAD_KAFKA_BOOTSTRAP_BROKERS": "ip-10-0-1-10:9094",
-		"LOOPAD_KAFKA_SECURITY_PROTOCOL": "SASL_PLAINTEXT",
-		"LOOPAD_KAFKA_SASL_MECHANISM":    "SCRAM-SHA-512",
-		"LOOPAD_KAFKA_USERNAME":          "event-collector",
-		"LOOPAD_KAFKA_PASSWORD":          "test-password",
-	})
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load() error = %v", err)
-	}
-	if cfg.KafkaSecurityProtocol != "SASL_PLAINTEXT" {
-		t.Fatalf("KafkaSecurityProtocol = %q", cfg.KafkaSecurityProtocol)
-	}
-	if cfg.KafkaSASLMechanism != "SCRAM-SHA-512" {
-		t.Fatalf("KafkaSASLMechanism = %q", cfg.KafkaSASLMechanism)
-	}
-	if cfg.KafkaUsername != "event-collector" {
-		t.Fatal("KafkaUsername was not parsed")
-	}
-	if cfg.KafkaPassword != "test-password" {
-		t.Fatal("KafkaPassword was not parsed")
 	}
 }
 
