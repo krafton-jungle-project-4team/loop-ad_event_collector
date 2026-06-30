@@ -14,7 +14,7 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 
 | Method | Path | 설명 |
 |---|---|---|
-| `GET` | `/health` | ECS/NLB health check. 정상일 때 `200`과 `ok`를 반환합니다. |
+| `GET` | `/health` | ECS/ALB health check. 정상일 때 `200`과 `ok`를 반환합니다. |
 | `POST` | `/` | SDK 기본 endpoint용 ingest path입니다. |
 | `POST` | `/events` | 명시적 ingest path입니다. |
 
@@ -22,6 +22,8 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 브라우저 SDK 호출을 위해 ingest path는 `OPTIONS` preflight와
 `Access-Control-Allow-Origin: *`를 지원합니다. 요청 body는
 `loop-ad_event_sdk`의 payload 형식으로 검증합니다.
+
+dev 배포 환경의 public base URL은 `https://event.api.dev.loop-ad.org`입니다.
 
 성공하면 `202 Accepted`와 아래 응답을 반환합니다.
 
@@ -45,7 +47,7 @@ topic `loop-ad.events.raw`로 발행하는 서버입니다. 이 서버의 외부
 | `LOOPAD_ENV` | `dev` | 실행 환경 이름 |
 | `LOOPAD_SERVICE_ID` | `event-collector` | 서비스 식별자. 다른 값이면 실패합니다. |
 | `PORT` | `8080` | `0.0.0.0:${PORT}`로 listen합니다. |
-| `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `ip-10-0-1-10:9094` | comma-separated Kafka bootstrap broker |
+| `LOOPAD_KAFKA_BOOTSTRAP_BROKERS` | `<kafka-ec2-public-dns>:9094` | comma-separated Kafka bootstrap broker |
 | `LOOPAD_KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` | Kafka security protocol |
 | `LOOPAD_KAFKA_SASL_MECHANISM` | `SCRAM-SHA-512` | `SASL_PLAINTEXT`에서 사용하는 SASL mechanism |
 | `LOOPAD_KAFKA_USERNAME` | `event-collector` | `SASL_PLAINTEXT`에서 필요한 Kafka username |
