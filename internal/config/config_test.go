@@ -104,6 +104,38 @@ func TestLoadRejectsMissingSCRAMCredentials(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsUnsupportedKafkaAuthConfig(t *testing.T) {
+	tests := []struct {
+		name      string
+		overrides map[string]string
+	}{
+		{
+			name: "security protocol",
+			overrides: map[string]string{
+				"LOOPAD_KAFKA_SECURITY_PROTOCOL": "PLAINTEXT",
+			},
+		},
+		{
+			name: "SASL mechanism",
+			overrides: map[string]string{
+				"LOOPAD_KAFKA_SASL_MECHANISM": "PLAIN",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			chdirTemp(t)
+			setConfigEnv(t, tt.overrides)
+
+			_, err := Load()
+			if err == nil {
+				t.Fatal("Load() error = nil, want unsupported Kafka auth config error")
+			}
+		})
+	}
+}
+
 func TestLoadRejectsOutOfRangePort(t *testing.T) {
 	chdirTemp(t)
 	setConfigEnv(t, map[string]string{"PORT": "70000"})
